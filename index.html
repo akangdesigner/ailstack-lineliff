@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Copying...</title>
+    <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+</head>
+<body>
+    <script>
+        async function main() {
+            try {
+                // 初始化 LIFF (ID 等你申請完回來補上)
+                await liff.init({ liffId: "YOUR_LIFF_ID" }); 
+                
+                const urlParams = new URLSearchParams(window.location.search);
+                const text = urlParams.get('text');
+
+                if (text) {
+                    const decodedText = decodeURIComponent(text);
+                    const el = document.createElement('textarea');
+                    el.value = decodedText;
+                    document.body.appendChild(el);
+                    el.select();
+                    document.execCommand('copy');
+                    document.body.removeChild(el);
+                }
+            } catch (err) {
+                console.error(err);
+            } finally {
+                liff.closeWindow(); // 複製完自動關閉視窗
+            }
+        }
+        main();
+    </script>
+</body>
+</html>
