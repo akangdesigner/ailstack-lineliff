@@ -2,48 +2,62 @@
 <html>
 <head>
     <meta charset="UTF-8">
-    <title>正在複製...</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>建議留言複製工具</title>
     <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+    <style>
+        body { font-family: sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0; background-color: #f4f4f9; }
+        .btn { padding: 15px 30px; font-size: 18px; color: white; background-color: #00B900; border: none; border-radius: 8px; cursor: pointer; display: none; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .status { margin-bottom: 20px; color: #555; }
+    </style>
 </head>
 <body>
-    <div id="status" style="text-align: center; margin-top: 50px; font-family: sans-serif;">正在自動複製...</div>
+    <div id="status" class="status">正在嘗試自動複製...</div>
+    <button id="copyBtn" class="btn">點擊我「複製建議留言」</button>
+
     <script>
-        async function main() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const textToCopy = decodeURIComponent(urlParams.get('text') || "");
+
+        async function doCopy(text) {
             try {
-                await liff.init({ liffId: "2009870716-qswS3myM" });
-
-                if (!liff.isLoggedIn()) {
-                    liff.login();
-                    return;
-                }
-
-                const urlParams = new URLSearchParams(window.location.search);
-                const text = urlParams.get('text');
-
-                if (text) {
-                    const decodedText = decodeURIComponent(text);
-                    
-                    // 使用現代化 Clipboard API
-                    await navigator.clipboard.writeText(decodedText);
-                    document.getElementById('status').innerText = "✅ 已複製到剪貼簿";
-                }
+                await navigator.clipboard.writeText(text);
+                document.getElementById('status').innerText = "✅ 複製成功！即將關閉...";
+                setTimeout(() => { liff.closeWindow(); }, 800);
+                return true;
             } catch (err) {
-                console.error("LIFF Error:", err);
-                // 備用方案：老派 execCommand 寫法 (針對部分舊版內建瀏覽器)
-                try {
-                    const el = document.createElement('textarea');
-                    el.value = decodeURIComponent(new URLSearchParams(window.location.search).get('text'));
-                    document.body.appendChild(el);
-                    el.select();
-                    document.execCommand('copy');
-                    document.body.removeChild(el);
-                } catch(e) {}
-            } finally {
-                // 給用戶一點點時間看到「已複製」，0.5秒後關閉
-                setTimeout(() => { liff.closeWindow(); }, 500);
+                console.error("Auto copy failed", err);
+                return false;
             }
         }
-        main();
+
+        async function main() {
+            await liff.init({ liffId: "2009870716-qswS3myM" });
+            
+            if (!liff.isLoggedIn()) {
+                liff.login();
+                return;
+            }
+
+            // 1. 嘗試自動複製
+            const success = await doCopy(textToCopy);
+
+            // 2. 如果自動失敗，顯示手動按鈕
+            if (!success) {
+                document.getElementById('status').innerText = "自動複製被攔截，請手動點擊下方按鈕";
+                const btn = document.getElementById('copyBtn');
+                btn.style.display = "block";
+                btn.onclick = async () => {
+                    await doCopy(textToCopy);
+                };
+            }
+        }
+
+        if (textToCopy) {
+            main();
+        } else {
+            document.getElementById('status').innerText = "錯誤：找不到留言內容";
+        }
     </script>
 </body>
 </html>
