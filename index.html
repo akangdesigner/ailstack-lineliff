@@ -1,63 +1,49 @@
 <!DOCTYPE html>
 <html>
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>建議留言複製工具</title>
-    <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
-    <style>
-        body { font-family: sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0; background-color: #f4f4f9; }
-        .btn { padding: 15px 30px; font-size: 18px; color: white; background-color: #00B900; border: none; border-radius: 8px; cursor: pointer; display: none; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-        .status { margin-bottom: 20px; color: #555; }
-    </style>
-</head>
+<head><meta charset="UTF-8"><title>Copying...</title></head>
 <body>
-    <div id="status" class="status">正在嘗試自動複製...</div>
-    <button id="copyBtn" class="btn">點擊我「複製建議留言」</button>
-
+    <h2 id="status">🚀 正在讀取內容...</h2>
+    <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
     <script>
-        const urlParams = new URLSearchParams(window.location.search);
-        const textToCopy = decodeURIComponent(urlParams.get('text') || "");
-
-        async function doCopy(text) {
-            try {
-                await navigator.clipboard.writeText(text);
-                document.getElementById('status').innerText = "✅ 複製成功！即將關閉...";
-                setTimeout(() => { liff.closeWindow(); }, 800);
-                return true;
-            } catch (err) {
-                console.error("Auto copy failed", err);
-                return false;
-            }
-        }
-
         async function main() {
-            await liff.init({ liffId: "2009870716-qswS3myM" });
-            
-            if (!liff.isLoggedIn()) {
-                liff.login();
-                return;
-            }
+            try {
+                await liff.init({ liffId: "2009870716-qswS3myM" });
+                
+                if (!liff.isLoggedIn()) {
+                    liff.login();
+                    return;
+                }
 
-            // 1. 嘗試自動複製
-            const success = await doCopy(textToCopy);
+                // 🌟 關鍵修正：不再只靠 window.location
+                // 使用 liff.getContext() 或是直接從 URL 暴力拆解
+                const urlObj = new URL(window.location.href);
+                let textToCopy = urlObj.searchParams.get('text');
 
-            // 2. 如果自動失敗，顯示手動按鈕
-            if (!success) {
-                document.getElementById('status').innerText = "自動複製被攔截，請手動點擊下方按鈕";
-                const btn = document.getElementById('copyBtn');
-                btn.style.display = "block";
-                btn.onclick = async () => {
-                    await doCopy(textToCopy);
-                };
+                // 如果上面抓不到，這招是針對 LINE 轉址後的「隱藏參數」
+                if (!textToCopy) {
+                    const search = window.location.search || (window.location.hash.includes('?') ? window.location.hash.split('?')[1] : '');
+                    textToCopy = new URLSearchParams(search).get('text');
+                }
+
+                if (textToCopy) {
+                    const decodedText = decodeURIComponent(textToCopy);
+                    const el = document.createElement('textarea');
+                    el.value = decodedText;
+                    document.body.appendChild(el);
+                    el.select();
+                    document.execCommand('copy');
+                    document.body.removeChild(el);
+
+                    document.getElementById('status').innerText = "✅ 已成功複製！";
+                    setTimeout(() => { liff.closeWindow(); }, 1000);
+                } else {
+                    document.getElementById('status').innerText = "❌ 找不到內容\n目前網址：" + window.location.href;
+                }
+            } catch (err) {
+                document.getElementById('status').innerText = "錯誤: " + err.message;
             }
         }
-
-        if (textToCopy) {
-            main();
-        } else {
-            document.getElementById('status').innerText = "錯誤：找不到留言內容";
-        }
+        main();
     </script>
 </body>
 </html>
